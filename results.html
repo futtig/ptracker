@@ -3,158 +3,162 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dee's Poker Tracker Results</title>
+  <title>Dee's Poker Tracker – Results</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(to bottom, #1f4037, #99f2c8);
+      background-color: #f4f4f9;
       color: #333;
       margin: 0;
       padding: 0;
+      text-align: center;
     }
     h1 {
-      text-align: center;
-      color: #fff;
-      padding: 20px;
-      background-color: #333;
+      background-color: #007bff;
+      color: white;
       margin: 0;
+      padding: 15px;
+      font-size: 24px;
+    }
+    #resultsContainer {
+      max-width: 900px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
     }
     table {
-      width: 80%;
-      margin: 20px auto;
+      width: 100%;
       border-collapse: collapse;
-      background: #fff;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      margin: 20px 0;
     }
     table th, table td {
-      padding: 10px;
-      text-align: center;
       border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
     }
     table th {
-      background-color: #333;
+      background-color: #007bff;
       color: white;
     }
-    canvas {
-      display: block;
-      max-width: 800px;
-      margin: 20px auto;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    .profit {
+      color: green;
+      font-weight: bold;
+    }
+    .loss {
+      color: red;
+      font-weight: bold;
+    }
+    #chartContainer {
+      margin: 20px 0;
     }
   </style>
 </head>
 <body>
 
-<h1>Dee's Poker Tracker Results</h1>
+<h1>Dee's Poker Tracker – Results</h1>
 
-<h2 style="text-align: center;">Sessions Data</h2>
-<table id="resultsTable">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Start Time</th>
-      <th>End Time</th>
-      <th>Duration</th>
-      <th>Stakes</th>
-      <th>Tables</th>
-      <th>Hands</th>
-      <th>Profit/Loss ($)</th>
-      <th>Total Profit/Loss ($)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- Rows will be dynamically added here -->
-  </tbody>
-</table>
+<div id="resultsContainer">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Tables</th>
+        <th>Hands Played</th>
+        <th>Stakes</th>
+        <th>Profit/Loss</th>
+        <th>Total Profit/Loss</th>
+      </tr>
+    </thead>
+    <tbody id="resultsTableBody">
+      <!-- Data from the tracker will be injected here -->
+    </tbody>
+  </table>
 
-<h2 style="text-align: center;">Profit vs. Hands Graph</h2>
-<canvas id="profitChart"></canvas>
+  <div id="chartContainer">
+    <canvas id="resultsChart"></canvas>
+  </div>
+</div>
 
 <script>
-  // Load session data from localStorage
-  const sessions = JSON.parse(localStorage.getItem('pokerSessions')) || [];
+  const resultsData = JSON.parse(localStorage.getItem('pokerResults')) || [];
   
-  // Populate the table
-  const tableBody = document.querySelector('#resultsTable tbody');
-  let runningTotal = 0;
+  const tableBody = document.getElementById('resultsTableBody');
+  const cumulativeProfits = [];
+  const totalHands = [];
 
-  sessions.forEach(session => {
-    runningTotal += parseFloat(session.profitLoss);
+  let cumulativeProfit = 0;
+  let handsPlayedSoFar = 0;
+
+  // Populate table and prepare data for the chart
+  resultsData.forEach((session, index) => {
     const row = document.createElement('tr');
+    const sessionProfit = parseFloat(session.profit);
+    cumulativeProfit += sessionProfit;
+    handsPlayedSoFar += parseInt(session.hands);
+
+    cumulativeProfits.push(cumulativeProfit);
+    totalHands.push(handsPlayedSoFar);
+
     row.innerHTML = `
       <td>${session.date}</td>
       <td>${session.startTime}</td>
       <td>${session.endTime}</td>
-      <td>${session.duration}</td>
-      <td>${session.stakes}</td>
       <td>${session.tables}</td>
       <td>${session.hands}</td>
-      <td style="color: ${session.profitLoss >= 0 ? 'green' : 'red'};">
-        $${parseFloat(session.profitLoss).toFixed(2)}
-      </td>
-      <td style="color: ${runningTotal >= 0 ? 'green' : 'red'};">
-        $${runningTotal.toFixed(2)}
-      </td>
+      <td>${session.stakes}</td>
+      <td class="${sessionProfit >= 0 ? 'profit' : 'loss'}">$${sessionProfit.toFixed(2)}</td>
+      <td class="${cumulativeProfit >= 0 ? 'profit' : 'loss'}">$${cumulativeProfit.toFixed(2)}</td>
     `;
     tableBody.appendChild(row);
   });
 
-  // Prepare data for the chart
-  const handsData = sessions.map(session => parseInt(session.hands));
-  const profitData = sessions.map(session => parseFloat(session.profitLoss));
-  const cumulativeProfitData = sessions.reduce((acc, session, index) => {
-    acc.push((acc[index - 1] || 0) + parseFloat(session.profitLoss));
-    return acc;
-  }, []);
-
-  // Generate the chart
-  const ctx = document.getElementById('profitChart').getContext('2d');
+  // Create chart
+  const ctx = document.getElementById('resultsChart').getContext('2d');
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: handsData,
-      datasets: [
-        {
-          label: 'Session Profit/Loss ($)',
-          data: profitData,
-          borderColor: 'blue',
-          backgroundColor: 'rgba(0, 0, 255, 0.1)',
-          borderWidth: 2,
-          fill: true
-        },
-        {
-          label: 'Cumulative Profit/Loss ($)',
-          data: cumulativeProfitData,
-          borderColor: 'green',
-          backgroundColor: 'rgba(0, 255, 0, 0.1)',
-          borderWidth: 2,
-          fill: true
-        }
-      ]
+      labels: totalHands,
+      datasets: [{
+        label: 'Cumulative Profit',
+        data: cumulativeProfits,
+        borderColor: 'green',
+        backgroundColor: 'rgba(0, 128, 0, 0.1)',
+        fill: true,
+        tension: 0.3
+      }]
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top'
-        }
-      },
       scales: {
         x: {
           title: {
             display: true,
-            text: 'Hands Played'
+            text: 'Total Hands Played',
+            font: { size: 14, weight: 'bold' }
+          },
+          ticks: {
+            callback: function(value, index) {
+              return index % 500 === 0 ? value : null; // Display every 500 hands
+            }
           }
         },
         y: {
           title: {
             display: true,
-            text: 'Profit/Loss ($)'
+            text: 'Cumulative Profit ($)',
+            font: { size: 14, weight: 'bold' }
           }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          labels: { font: { size: 12 } }
         }
       }
     }
@@ -163,3 +167,4 @@
 
 </body>
 </html>
+
