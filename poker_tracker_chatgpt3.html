@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dee's Poker Tracker</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #1f4037, #99f2c8);
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      padding: 20px;
+      background-color: #333;
+      margin: 0;
+    }
+    form, table, .controls, .totals {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table th, table td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    table th {
+      background-color: #333;
+      color: white;
+    }
+    .profit-positive {
+      color: green;
+    }
+    .profit-negative {
+      color: red;
+    }
+    .controls button {
+      margin-right: 10px;
+    }
+    .totals {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .profit-display {
+      display: inline-block;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .profit-display.positive {
+      color: green;
+    }
+    .profit-display.negative {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Dee's Poker Tracker</h1>
+
+<div class="totals">
+  <div>Total Profit/Loss: 
+    <span id="totalProfit" class="profit-display">0.00</span> $
+  </div>
+</div>
+
+<form id="pokerForm">
+  <label for="date">Date:</label>
+  <input type="date" id="date" required>
+
+  <label for="startTime">Start Time:</label>
+  <input type="time" id="startTime" required>
+
+  <label for="endTime">End Time:</label>
+  <input type="time" id="endTime" required>
+
+  <label for="stakes">Stakes Played:</label>
+  <select id="stakes" required>
+    <option value="NL5">NL5</option>
+    <option value="NL10">NL10</option>
+    <option value="NL25">NL25</option>
+    <option value="NL50">NL50</option>
+    <option value="NL100">NL100</option>
+    <option value="NL200">NL200</option>
+  </select>
+
+  <label for="tables">Number of Tables:</label>
+  <select id="tables" required>
+    <option value="1">1 Table</option>
+    <option value="2">2 Tables</option>
+    <option value="3">3 Tables</option>
+    <option value="4">4 Tables</option>
+  </select>
+
+  <label for="hands">Hands Played:</label>
+  <input type="number" id="hands" required>
+
+  <label for="startingBalance">Starting Balance ($):</label>
+  <input type="number" id="startingBalance" step="0.01" required>
+
+  <label for="endingBalance">Ending Balance ($):</label>
+  <input type="number" id="endingBalance" step="0.01" required>
+
+  <button type="button" onclick="saveSession()">Save Session</button>
+</form>
+
+<div class="controls">
+  <button onclick="downloadResults()">Download Results (JSON)</button>
+  <button onclick="downloadCSV()">Download Results (CSV)</button>
+  <button onclick="resetTracker()">Reset Tracker</button>
+</div>
+
+<table id="resultsTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Start Time</th>
+      <th>End Time</th>
+      <th>Duration</th>
+      <th>Stakes</th>
+      <th>Tables</th>
+      <th>Hands</th>
+      <th>Profit/Loss ($)</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let sessions = [];
+  let totalProfit = 0;
+
+  function saveSession() {
+    const date = document.getElementById('date').value;
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    const stakes = document.getElementById('stakes').value;
+    const tables = document.getElementById('tables').value;
+    const hands = document.getElementById('hands').value;
+    const startingBalance = parseFloat(document.getElementById('startingBalance').value);
+    const endingBalance = parseFloat(document.getElementById('endingBalance').value);
+
+    const duration = calculateDuration(startTime, endTime);
+    const profitLoss = (endingBalance - startingBalance).toFixed(2);
+
+    totalProfit += parseFloat(profitLoss);
+    updateTotalProfitDisplay();
+
+    const session = { date, startTime, endTime, duration, stakes, tables, hands, profitLoss };
+    sessions.push(session);
+    updateTable();
+    saveToLocalStorage();
+  }
+
+  function calculateDuration(start, end) {
+    const startTime = new Date(`1970-01-01T${start}`);
+    const endTime = new Date(`1970-01-01T${end}`);
+    const diff = (endTime - startTime) / (1000 * 60 * 60); // Difference in hours
+    return `${diff.toFixed(2)}h`;
+  }
+
+  function updateTotalProfitDisplay() {
+    const totalProfitElement = document.getElementById('totalProfit');
+    totalProfitElement.textContent = totalProfit.toFixed(2);
+    totalProfitElement.className = `profit-display ${totalProfit >= 0 ? 'positive' : 'negative'}`;
+  }
+
+  function updateTable() {
+    const tableBody = document.querySelector('#resultsTable tbody');
+    tableBody.innerHTML = '';
+    sessions.forEach((session, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${session.date}</td>
+        <td>${session.startTime}</td>
+        <td>${session.endTime}</td>
+        <td>${session.duration}</td>
+        <td>${session.stakes}</td>
+        <td>${session.tables}</td>
+        <td>${session.hands}</td>
+        <td class="${session.profitLoss >= 0 ? 'profit-positive' : 'profit-negative'}">
+          $${session.profitLoss}
+        </td>
+        <td><button onclick="deleteSession(${index})">Delete</button></td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
+  function deleteSession(index) {
+    if (confirm("Are you sure you want to delete this session?")) {
+      totalProfit -= parseFloat(sessions[index].profitLoss);
+      sessions.splice(index, 1);
+      updateTable();
+      updateTotalProfitDisplay();
+      saveToLocalStorage();
+    }
+  }
+
+  function downloadCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Date,Start Time,End Time,Duration,Stakes,Tables,Hands,Profit/Loss ($),Total Profit/Loss ($)\n";
+
+    let runningTotal = 0;
+    sessions.forEach(session => {
+      runningTotal += parseFloat(session.profitLoss);
+      csvContent += `${session.date},${session.startTime},${session.endTime},${session.duration},${session.stakes},${session.tables},${session.hands},${session.profitLoss},${runningTotal.toFixed(2)}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "poker_results.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  function resetTracker() {
+    if (confirm("Are you sure you want to reset the tracker? This action is irreversible.")) {
+      sessions = [];
+      totalProfit = 0;
+      updateTable();
+      updateTotalProfitDisplay();
+      saveToLocalStorage();
+    }
+  }
+
+  function saveToLocalStorage() {
+    localStorage.setItem('pokerSessions', JSON.stringify(sessions));
+    localStorage.setItem('totalProfit', totalProfit.toFixed(2));
+  }
+
+  function loadFromLocalStorage() {
+    const savedSessions = JSON.parse(localStorage.getItem('pokerSessions')) || [];
+    const savedTotalProfit = parseFloat(localStorage.getItem('totalProfit')) || 0;
+
+    sessions = savedSessions;
+    totalProfit = savedTotalProfit;
+
+    updateTable();
+    updateTotalProfitDisplay();
+  }
+
+  loadFromLocalStorage();
+</script>
+
+</body>
+</html>
