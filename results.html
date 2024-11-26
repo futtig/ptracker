@@ -70,7 +70,7 @@
   </tbody>
 </table>
 
-<h2 style="text-align: center;">Profit vs. Hands Graph</h2>
+<h2 style="text-align: center;">Cumulative Profit Graph</h2>
 <canvas id="profitChart"></canvas>
 
 <script>
@@ -102,15 +102,19 @@
     tableBody.appendChild(row);
   });
 
-  // Prepare data for the chart
-  const handsData = sessions.map(session => parseInt(session.hands));
-  const profitData = sessions.map(session => parseFloat(session.profitLoss));
-  const cumulativeProfitData = sessions.reduce((acc, session, index) => {
-    acc.push((acc[index - 1] || 0) + parseFloat(session.profitLoss));
-    return acc;
-  }, []);
+  // Prepare data for the graph
+  let cumulativeProfit = 0;
+  const cumulativeProfits = sessions.map(session => {
+    cumulativeProfit += parseFloat(session.profitLoss);
+    return cumulativeProfit.toFixed(2);
+  });
 
-  // Generate the chart
+  const totalHandsPlayed = sessions.reduce((acc, session) => acc + parseInt(session.hands), 0);
+  const handsData = sessions.map((session, index) =>
+    sessions.slice(0, index + 1).reduce((acc, s) => acc + parseInt(s.hands), 0)
+  );
+
+  // Generate the graph
   const ctx = document.getElementById('profitChart').getContext('2d');
   new Chart(ctx, {
     type: 'line',
@@ -118,18 +122,9 @@
       labels: handsData,
       datasets: [
         {
-          label: 'Session Profit/Loss ($)',
-          data: profitData,
-          borderColor: 'blue',
-          backgroundColor: 'rgba(0, 0, 255, 0.1)',
-          borderWidth: 2,
-          fill: true
-        },
-        {
-          label: 'Cumulative Profit/Loss ($)',
-          data: cumulativeProfitData,
+          data: cumulativeProfits,
           borderColor: 'green',
-          backgroundColor: 'rgba(0, 255, 0, 0.1)',
+          backgroundColor: 'rgba(46, 204, 113, 0.2)',
           borderWidth: 2,
           fill: true
         }
@@ -137,23 +132,25 @@
     },
     options: {
       responsive: true,
+      maintainAspectRatio: true,
       plugins: {
         legend: {
-          display: true,
-          position: 'top'
+          display: false // Hide legend since we only show one graph
         }
       },
       scales: {
         x: {
           title: {
             display: true,
-            text: 'Hands Played'
+            text: 'Total Hands Played',
+            font: { size: 14, weight: 'bold' }
           }
         },
         y: {
           title: {
             display: true,
-            text: 'Profit/Loss ($)'
+            text: 'Cumulative Profit/Loss ($)',
+            font: { size: 14, weight: 'bold' }
           }
         }
       }
@@ -163,5 +160,4 @@
 
 </body>
 </html>
-
 
