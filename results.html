@@ -83,7 +83,7 @@
       </tr>
     </thead>
     <tbody id="resultsTableBody">
-      <!-- Data from the tracker will be injected here -->
+      <!-- Data from the tracker will be dynamically injected here -->
     </tbody>
   </table>
 
@@ -93,6 +93,7 @@
 </div>
 
 <script>
+  // Fetch the latest data from localStorage
   const resultsData = JSON.parse(localStorage.getItem('pokerResults')) || [];
   
   const tableBody = document.getElementById('resultsTableBody');
@@ -101,6 +102,9 @@
 
   let cumulativeProfit = 0;
   let handsPlayedSoFar = 0;
+
+  // Clear the table to ensure no duplication
+  tableBody.innerHTML = '';
 
   // Populate table and prepare data for the chart
   resultsData.forEach((session) => {
@@ -125,7 +129,7 @@
     tableBody.appendChild(row);
   });
 
-  // Create chart
+  // Create the cumulative profit chart
   const ctx = document.getElementById('resultsChart').getContext('2d');
   new Chart(ctx, {
     type: 'line',
@@ -176,5 +180,6 @@
 
 </body>
 </html>
+
 
 
