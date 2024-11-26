@@ -95,94 +95,72 @@
 <script>
   // Fetch the latest data from localStorage
   function loadResults() {
-    const resultsData = JSON.parse(localStorage.getItem('pokerResults')) || [];
-    const tableBody = document.getElementById('resultsTableBody');
-    const cumulativeProfits = [];
-    const totalHands = [];
-
-    let cumulativeProfit = 0;
-    let handsPlayedSoFar = 0;
-
-    // Clear the table to ensure no duplication
-    tableBody.innerHTML = '';
-
-    // Populate table and prepare data for the chart
-    resultsData.forEach((session) => {
-      const row = document.createElement('tr');
-      const sessionProfit = parseFloat(session.profit);
-      cumulativeProfit += sessionProfit;
-      handsPlayedSoFar += parseInt(session.hands);
-
-      cumulativeProfits.push(cumulativeProfit);
-      totalHands.push(handsPlayedSoFar);
-
-      row.innerHTML = `
-        <td>${session.date}</td>
-        <td>${session.startTime}</td>
-        <td>${session.endTime}</td>
-        <td>${session.tables}</td>
-        <td>${session.hands}</td>
-        <td>${session.stakes}</td>
-        <td class="${sessionProfit >= 0 ? 'profit' : 'loss'}">$${sessionProfit.toFixed(2)}</td>
-        <td class="${cumulativeProfit >= 0 ? 'profit' : 'loss'}">$${cumulativeProfit.toFixed(2)}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-
-    // Create the cumulative profit chart
-    const ctx = document.getElementById('resultsChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: totalHands,
-        datasets: [{
-          label: 'Cumulative Profit',
-          data: cumulativeProfits,
-          borderColor: '#2ecc71',
-          backgroundColor: 'rgba(46, 204, 113, 0.1)',
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Total Hands Played',
-              font: { size: 14, weight: 'bold' }
-            },
-            ticks: {
-              callback: function(value, index) {
-                return index % 500 === 0 ? value : null; // Display every 500 hands
-              }
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Cumulative Profit ($)',
-              font: { size: 14, weight: 'bold' }
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: true,
-            labels: { font: { size: 12 } }
-          }
-        }
+    try {
+      const resultsData = JSON.parse(localStorage.getItem('pokerResults')) || [];
+      
+      if (!Array.isArray(resultsData)) {
+        console.error("Invalid data format in localStorage. Expected an array.");
+        return; // Exit if data is invalid
       }
-    });
-  }
 
-  // Load results on page load
-  document.addEventListener('DOMContentLoaded', loadResults);
-</script>
+      const tableBody = document.getElementById('resultsTableBody');
+      const cumulativeProfits = [];
+      const totalHands = [];
 
-</body>
-</html>
+      let cumulativeProfit = 0;
 
+      // Clear the table to ensure no duplication
+      tableBody.innerHTML = '';
+
+      // Populate table and prepare data for the chart
+      resultsData.forEach((session) => {
+        const row = document.createElement('tr');
+        
+        // Parse profit/loss and calculate cumulative profit
+        const sessionProfit = parseFloat(session.profit || "0");
+        cumulativeProfit += sessionProfit;
+
+        // Add cumulative profit to chart data
+        cumulativeProfits.push(cumulativeProfit);
+        totalHands.push(parseInt(session.hands || "0"));
+
+        row.innerHTML = `
+          <td>${session.date || "N/A"}</td>
+          <td>${session.startTime || "N/A"}</td>
+          <td>${session.endTime || "N/A"}</td>
+          <td>${session.tables || "N/A"}</td>
+          <td>${session.hands || "N/A"}</td>
+          <td>${session.stakes || "N/A"}</td>
+          <td class="${sessionProfit >= 0 ? 'profit' : 'loss'}">$${sessionProfit.toFixed(2)}</td>
+          <td class="${cumulativeProfit >= 0 ? 'profit' : 'loss'}">$${cumulativeProfit.toFixed(2)}</td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+
+      // Create the cumulative profit chart
+      const ctx = document.getElementById('resultsChart').getContext('2d');
+      
+	  // Destroy existing chart instance if it exists (to avoid duplication)
+	  if (window.myChart) window.myChart.destroy();
+
+	  window.myChart = new Chart(ctx, {
+		type: 'line',
+		data: {
+		  labels: totalHands,
+		  datasets: [{
+			label: 'Cumulative Profit',
+			data: cumulativeProfits,
+			borderColor: '#2ecc71',
+			backgroundColor: 'rgba(46,204,113,0.1)',
+			fill: true,
+			tension: 0.3
+		  }]
+		},
+		options:
+		{
+			responsive:true,
+		 maintainAspectRatio:false.
+			scales:{
+			 x:{...
 
