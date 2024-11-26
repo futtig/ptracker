@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dee's Poker Tracker Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #1f4037, #99f2c8);
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      padding: 20px;
+      background-color: #333;
+      margin: 0;
+    }
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    table th, table td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    table th {
+      background-color: #333;
+      color: white;
+    }
+    canvas {
+      display: block;
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+<h1>Dee's Poker Tracker Results</h1>
+
+<h2 style="text-align: center;">Sessions Data</h2>
+<table id="resultsTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Start Time</th>
+      <th>End Time</th>
+      <th>Duration</th>
+      <th>Stakes</th>
+      <th>Tables</th>
+      <th>Hands</th>
+      <th>Profit/Loss ($)</th>
+      <th>Total Profit/Loss ($)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Rows will be dynamically added here -->
+  </tbody>
+</table>
+
+<h2 style="text-align: center;">Profit vs. Hands Graph</h2>
+<canvas id="profitChart"></canvas>
+
+<script>
+  // Load session data from localStorage
+  const sessions = JSON.parse(localStorage.getItem('pokerSessions')) || [];
+  
+  // Populate the table
+  const tableBody = document.querySelector('#resultsTable tbody');
+  let runningTotal = 0;
+
+  sessions.forEach(session => {
+    runningTotal += parseFloat(session.profitLoss);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${session.date}</td>
+      <td>${session.startTime}</td>
+      <td>${session.endTime}</td>
+      <td>${session.duration}</td>
+      <td>${session.stakes}</td>
+      <td>${session.tables}</td>
+      <td>${session.hands}</td>
+      <td style="color: ${session.profitLoss >= 0 ? 'green' : 'red'};">
+        $${parseFloat(session.profitLoss).toFixed(2)}
+      </td>
+      <td style="color: ${runningTotal >= 0 ? 'green' : 'red'};">
+        $${runningTotal.toFixed(2)}
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  // Prepare data for the chart
+  const handsData = sessions.map(session => parseInt(session.hands));
+  const profitData = sessions.map(session => parseFloat(session.profitLoss));
+  const cumulativeProfitData = sessions.reduce((acc, session, index) => {
+    acc.push((acc[index - 1] || 0) + parseFloat(session.profitLoss));
+    return acc;
+  }, []);
+
+  // Generate the chart
+  const ctx = document.getElementById('profitChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: handsData,
+      datasets: [
+        {
+          label: 'Session Profit/Loss ($)',
+          data: profitData,
+          borderColor: 'blue',
+          backgroundColor: 'rgba(0, 0, 255, 0.1)',
+          borderWidth: 2,
+          fill: true
+        },
+        {
+          label: 'Cumulative Profit/Loss ($)',
+          data: cumulativeProfitData,
+          borderColor: 'green',
+          backgroundColor: 'rgba(0, 255, 0, 0.1)',
+          borderWidth: 2,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Hands Played'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Profit/Loss ($)'
+          }
+        }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
